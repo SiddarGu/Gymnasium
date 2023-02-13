@@ -1,7 +1,9 @@
+import numpy as np
 import pytest
 
 import gymnasium as gym
 from gymnasium.wrappers import RecordEpisodeStatistics, VectorListInfo
+
 
 ENV_ID = "CartPole-v1"
 NUM_ENVS = 3
@@ -53,6 +55,6 @@ def test_info_to_list_statistics():
                 assert "episode" in list_info[i]
                 for stats in ["r", "l", "t"]:
                     assert stats in list_info[i]["episode"]
-                    assert isinstance(list_info[i]["episode"][stats], float)
+                    assert np.isscalar(list_info[i]["episode"][stats])
             else:
                 assert "episode" not in list_info[i]

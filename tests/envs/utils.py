@@ -14,10 +14,17 @@ def try_make_env(env_spec: EnvSpec) -> Optional[gym.Env]:
     Warning the environments have no wrappers, including time limit and order enforcing.
     """
     # To avoid issues with registered environments during testing, we check that the spec entry points are from gymnasium.envs.
-    if "gymnasium.envs." in env_spec.entry_point:
+    if (
+        isinstance(env_spec.entry_point, str)
+        and "gymnasium.envs." in env_spec.entry_point
+    ):
         try:
             return env_spec.make(disable_env_checker=True).unwrapped
-        except (ImportError, gym.error.DependencyNotInstalled) as e:
+        except (
+            ImportError,
+            gym.error.DependencyNotInstalled,
+            gym.error.MissingArgument,
+        ) as e:
             logger.warn(f"Not testing {env_spec.id} due to error: {e}")
     return None
 
@@ -46,20 +53,6 @@ gym_testing_env_specs: List[EnvSpec] = [
         f"gymnasium.envs.{ep}" in env_spec.entry_point
         for ep in ["box2d", "classic_control", "toy_text"]
     )
-]
-# TODO, add minimum testing env spec in testing
-minimum_testing_env_specs = [
-    env_spec
-    for env_spec in [
-        "CartPole-v1",
-        "MountainCarContinuous-v0",
-        "LunarLander-v2",
-        "LunarLanderContinuous-v2",
-        "CarRacing-v2",
-        "Blackjack-v1",
-        "Reacher-v4",
-    ]
-    if env_spec in all_testing_env_specs
 ]
 
 

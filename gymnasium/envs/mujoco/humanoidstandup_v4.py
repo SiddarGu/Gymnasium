@@ -5,9 +5,17 @@ from gymnasium.envs.mujoco import MujocoEnv
 from gymnasium.spaces import Box
 
 
+DEFAULT_CAMERA_CONFIG = {
+    "trackbodyid": 1,
+    "distance": 4.0,
+    "lookat": np.array((0.0, 0.0, 0.8925)),
+    "elevation": -20.0,
+}
+
+
 class HumanoidStandupEnv(MujocoEnv, utils.EzPickle):
     """
-    ### Description
+    ## Description
 
     This environment is based on the environment introduced by Tassa, Erez and Todorov
     in ["Synthesis and stabilization of complex behaviors through online trajectory optimization"](https://ieeexplore.ieee.org/document/6386025).
@@ -17,7 +25,7 @@ class HumanoidStandupEnv(MujocoEnv, utils.EzPickle):
     and then the goal of the environment is to make the humanoid standup and then keep it standing
     by applying torques on the various hinges.
 
-    ### Action Space
+    ## Action Space
     The agent take a 17-element vector for actions.
 
     The action space is a continuous `(action, ...)` all in `[-1, 1]`, where `action`
@@ -25,9 +33,9 @@ class HumanoidStandupEnv(MujocoEnv, utils.EzPickle):
 
     | Num | Action                                                                             | Control Min | Control Max | Name (in corresponding XML file) | Joint | Unit         |
     | --- | ---------------------------------------------------------------------------------- | ----------- | ----------- | -------------------------------- | ----- | ------------ |
-    | 0   | Torque applied on the hinge in the y-coordinate of the abdomen                     | -0.4        | 0.4         | hip_1 (front_left_leg)           | hinge | torque (N m) |
-    | 1   | Torque applied on the hinge in the z-coordinate of the abdomen                     | -0.4        | 0.4         | angle_1 (front_left_leg)         | hinge | torque (N m) |
-    | 2   | Torque applied on the hinge in the x-coordinate of the abdomen                     | -0.4        | 0.4         | hip_2 (front_right_leg)          | hinge | torque (N m) |
+    | 0   | Torque applied on the hinge in the y-coordinate of the abdomen                     | -0.4        | 0.4         | abdomen_y                        | hinge | torque (N m) |
+    | 1   | Torque applied on the hinge in the z-coordinate of the abdomen                     | -0.4        | 0.4         | abdomen_z                        | hinge | torque (N m) |
+    | 2   | Torque applied on the hinge in the x-coordinate of the abdomen                     | -0.4        | 0.4         | abdomen_x                        | hinge | torque (N m) |
     | 3   | Torque applied on the rotor between torso/abdomen and the right hip (x-coordinate) | -0.4        | 0.4         | right_hip_x (right_thigh)        | hinge | torque (N m) |
     | 4   | Torque applied on the rotor between torso/abdomen and the right hip (z-coordinate) | -0.4        | 0.4         | right_hip_z (right_thigh)        | hinge | torque (N m) |
     | 5   | Torque applied on the rotor between torso/abdomen and the right hip (y-coordinate) | -0.4        | 0.4         | right_hip_y (right_thigh)        | hinge | torque (N m) |
@@ -43,7 +51,7 @@ class HumanoidStandupEnv(MujocoEnv, utils.EzPickle):
     | 15  | Torque applied on the rotor between the torso and left upper arm (coordinate -2)   | -0.4        | 0.4         | left_shoulder2                   | hinge | torque (N m) |
     | 16  | Torque applied on the rotor between the left upper arm and left lower arm          | -0.4        | 0.4         | left_elbow                       | hinge | torque (N m) |
 
-    ### Observation Space
+    ## Observation Space
 
     The state space consists of positional values of different body parts of the Humanoid,
     followed by the velocities of those individual parts (their derivatives) with all the positions ordered before all the velocities.
@@ -125,7 +133,7 @@ class HumanoidStandupEnv(MujocoEnv, utils.EzPickle):
     when using the Humanoid environment if you would like to report results with contact forces
     (if contact forces are not used in your experiments, you can use version > 2.0).
 
-    ### Rewards
+    ## Rewards
     The reward consists of three parts:
     - *uph_cost*: A reward for moving upward (in an attempt to stand up). This is not a relative
     reward which measures how much upward it has moved from the last timestep, but it is an
@@ -143,7 +151,7 @@ class HumanoidStandupEnv(MujocoEnv, utils.EzPickle):
 
     The total reward returned is ***reward*** *=* *uph_cost + 1 - quad_ctrl_cost - quad_impact_cost*
 
-    ### Starting State
+    ## Starting State
     All observations start in state
     (0.0, 0.0,  0.105, 1.0, 0.0  ... 0.0) with a uniform noise in the range of
     [-0.01, 0.01] added to the positional and velocity values (values in the table)
@@ -151,13 +159,13 @@ class HumanoidStandupEnv(MujocoEnv, utils.EzPickle):
     to be low, thereby indicating a laying down humanoid. The initial orientation is
     designed to make it face forward as well.
 
-    ### Episode End
+    ## Episode End
     The episode ends when any of the following happens:
 
     1. Truncation: The episode duration reaches a 1000 timesteps
     2. Termination: Any of the state space values is no longer finite
 
-    ### Arguments
+    ## Arguments
 
     No additional arguments are currently supported.
 
@@ -174,11 +182,11 @@ class HumanoidStandupEnv(MujocoEnv, utils.EzPickle):
     env = gym.make('HumanoidStandup-v2')
     ```
 
-    ### Version History
+    ## Version History
 
-    * v4: all mujoco environments now use the mujoco bindings in mujoco>=2.1.3
-    * v3: support for `gymnasium.make` kwargs such as `xml_file`, `ctrl_cost_weight`, `reset_noise_scale`, etc. rgb rendering comes from tracking camera (so agent does not run away from screen)
-    * v2: All continuous control environments now use mujoco_py >= 1.50
+    * v4: All MuJoCo environments now use the MuJoCo bindings in mujoco >= 2.1.3
+    * v3: Support for `gymnasium.make` kwargs such as `xml_file`, `ctrl_cost_weight`, `reset_noise_scale`, etc. rgb rendering comes from tracking camera (so agent does not run away from screen)
+    * v2: All continuous control environments now use mujoco-py >= 1.50
     * v1: max_time_steps raised to 1000 for robot based tasks. Added reward_threshold to environments.
     * v0: Initial versions release (1.0.0)
     """
@@ -201,6 +209,7 @@ class HumanoidStandupEnv(MujocoEnv, utils.EzPickle):
             "humanoidstandup.xml",
             5,
             observation_space=observation_space,
+            default_camera_config=DEFAULT_CAMERA_CONFIG,
             **kwargs
         )
         utils.EzPickle.__init__(self, **kwargs)
@@ -255,10 +264,3 @@ class HumanoidStandupEnv(MujocoEnv, utils.EzPickle):
             ),
         )
         return self._get_obs()
-
-    def viewer_setup(self):
-        assert self.viewer is not None
-        self.viewer.cam.trackbodyid = 1
-        self.viewer.cam.distance = self.model.stat.extent * 1.0
-        self.viewer.cam.lookat[2] = 0.8925
-        self.viewer.cam.elevation = -20

@@ -13,16 +13,17 @@ class TransformReward(RewardWrapper):
 
     Example:
         >>> import gymnasium as gym
-        >>> env = gym.make('CartPole-v1')
+        >>> from gymnasium.wrappers import TransformReward
+        >>> env = gym.make("CartPole-v1")
         >>> env = TransformReward(env, lambda r: 0.01*r)
-        >>> env.reset()
+        >>> _ = env.reset()
         >>> observation, reward, terminated, truncated, info = env.step(env.action_space.sample())
         >>> reward
         0.01
     """
 
     def __init__(self, env: gym.Env, f: Callable[[float], float]):
-        """Initialize the :class:`TransformReward` wrapper with an environment and reward transform function :param:`f`.
+        """Initialize the :class:`TransformReward` wrapper with an environment and reward transform function :attr:`f`.
 
         Args:
             env: The environment to apply the wrapper

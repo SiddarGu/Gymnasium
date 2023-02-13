@@ -9,6 +9,7 @@ import numpy as np
 import gymnasium as gym
 from gymnasium import spaces
 
+
 STATE_KEY = "state"
 
 
@@ -24,22 +25,23 @@ class PixelObservationWrapper(gym.ObservationWrapper):
 
     Example:
         >>> import gymnasium as gym
-        >>> env = PixelObservationWrapper(gym.make('CarRacing-v1', render_mode="rgb_array"))
-        >>> obs = env.reset()
+        >>> from gymnasium.wrappers import PixelObservationWrapper
+        >>> env = PixelObservationWrapper(gym.make("CarRacing-v2", render_mode="rgb_array"))
+        >>> obs, _ = env.reset()
         >>> obs.keys()
         odict_keys(['pixels'])
         >>> obs['pixels'].shape
         (400, 600, 3)
-        >>> env = PixelObservationWrapper(gym.make('CarRacing-v1', render_mode="rgb_array"), pixels_only=False)
-        >>> obs = env.reset()
+        >>> env = PixelObservationWrapper(gym.make("CarRacing-v2", render_mode="rgb_array"), pixels_only=False)
+        >>> obs, _ = env.reset()
         >>> obs.keys()
         odict_keys(['state', 'pixels'])
         >>> obs['state'].shape
         (96, 96, 3)
         >>> obs['pixels'].shape
         (400, 600, 3)
-        >>> env = PixelObservationWrapper(gym.make('CarRacing-v1', render_mode="rgb_array"), pixel_keys=('obs',))
-        >>> obs = env.reset()
+        >>> env = PixelObservationWrapper(gym.make("CarRacing-v2", render_mode="rgb_array"), pixel_keys=('obs',))
+        >>> obs, _ = env.reset()
         >>> obs.keys()
         odict_keys(['obs'])
         >>> obs['obs'].shape
@@ -57,16 +59,16 @@ class PixelObservationWrapper(gym.ObservationWrapper):
 
         Args:
             env: The environment to wrap.
-            pixels_only (bool): If ``True`` (default), the original observation returned
+            pixels_only (bool): If `True` (default), the original observation returned
                 by the wrapped environment will be discarded, and a dictionary
-                observation will only include pixels. If ``False``, the
+                observation will only include pixels. If `False`, the
                 observation dictionary will contain both the original
                 observations and the pixel observations.
-            render_kwargs (dict): Optional dictionary containing that maps elements of ``pixel_keys``to
+            render_kwargs (dict): Optional dictionary containing that maps elements of `pixel_keys` to
                 keyword arguments passed to the :meth:`self.render` method.
             pixel_keys: Optional custom string specifying the pixel
-                observation's key in the ``OrderedDict`` of observations.
-                Defaults to ``(pixels,)``.
+                observation's key in the `OrderedDict` of observations.
+                Defaults to `(pixels,)`.
 
         Raises:
             AssertionError: If any of the keys in ``render_kwargs``do not show up in ``pixel_keys``.

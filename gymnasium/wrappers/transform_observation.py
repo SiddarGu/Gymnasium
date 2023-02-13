@@ -13,15 +13,17 @@ class TransformObservation(gym.ObservationWrapper):
 
     Example:
         >>> import gymnasium as gym
+        >>> from gymnasium.wrappers import TransformObservation
         >>> import numpy as np
-        >>> env = gym.make('CartPole-v1')
-        >>> env = TransformObservation(env, lambda obs: obs + 0.1*np.random.randn(*obs.shape))
-        >>> env.reset()
-        array([-0.08319338,  0.04635121, -0.07394746,  0.20877492])
+        >>> np.random.seed(0)
+        >>> env = gym.make("CartPole-v1")
+        >>> env = TransformObservation(env, lambda obs: obs + 0.1 * np.random.randn(*obs.shape))
+        >>> env.reset(seed=42)
+        (array([0.20380084, 0.03390356, 0.13373359, 0.24382612]), {})
     """
 
     def __init__(self, env: gym.Env, f: Callable[[Any], Any]):
-        """Initialize the :class:`TransformObservation` wrapper with an environment and a transform function :param:`f`.
+        """Initialize the :class:`TransformObservation` wrapper with an environment and a transform function :attr:`f`.
 
         Args:
             env: The environment to apply the wrapper

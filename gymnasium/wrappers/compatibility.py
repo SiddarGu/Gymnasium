@@ -3,18 +3,17 @@ import sys
 from typing import Any, Dict, Optional, Tuple
 
 import gymnasium as gym
+from gymnasium import logger
 from gymnasium.core import ObsType
 from gymnasium.utils.step_api_compatibility import (
     convert_to_terminated_truncated_step_api,
 )
 
+
 if sys.version_info >= (3, 8):
     from typing import Protocol, runtime_checkable
-elif sys.version_info >= (3, 7):
-    from typing_extensions import Protocol, runtime_checkable
 else:
-    Protocol = object
-    runtime_checkable = lambda x: x  # noqa: E731
+    from typing_extensions import Protocol, runtime_checkable
 
 
 @runtime_checkable
@@ -65,6 +64,10 @@ class EnvCompatibility(gym.Env):
             old_env (LegacyEnv): the env to wrap, implemented with the old API
             render_mode (str): the render mode to use when rendering the environment, passed automatically to env.render
         """
+        logger.warn(
+            "The `gymnasium.make(..., apply_api_compatibility=...)` parameter is deprecated and will be removed in v0.29. "
+            "Instead use `gym.make('GymV21Environment-v0', env_name=...)` or `from shimmy import GymV21CompatibilityV0`"
+        )
         self.metadata = getattr(old_env, "metadata", {"render_modes": []})
         self.render_mode = render_mode
         self.reward_range = getattr(old_env, "reward_range", None)

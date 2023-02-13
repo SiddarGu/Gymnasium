@@ -36,10 +36,10 @@ class LazyFrames:
         if lz4_compress:
             try:
                 from lz4.block import compress
-            except ImportError:
+            except ImportError as e:
                 raise DependencyNotInstalled(
                     "lz4 is not installed, run `pip install gymnasium[other]`"
-                )
+                ) from e
 
             frames = [compress(frame) for frame in frames]
         self._frames = frames
@@ -109,15 +109,17 @@ class FrameStack(gym.ObservationWrapper):
         - To be memory efficient, the stacked observations are wrapped by :class:`LazyFrame`.
         - The observation space must be :class:`Box` type. If one uses :class:`Dict`
           as observation space, it should apply :class:`FlattenObservation` wrapper first.
-          - After :meth:`reset` is called, the frame buffer will be filled with the initial observation. I.e. the observation returned by :meth:`reset` will consist of ``num_stack`-many identical frames,
+        - After :meth:`reset` is called, the frame buffer will be filled with the initial observation.
+          I.e. the observation returned by :meth:`reset` will consist of `num_stack` many identical frames.
 
     Example:
         >>> import gymnasium as gym
-        >>> env = gym.make('CarRacing-v1')
+        >>> from gymnasium.wrappers import FrameStack
+        >>> env = gym.make("CarRacing-v2")
         >>> env = FrameStack(env, 4)
         >>> env.observation_space
-        Box(4, 96, 96, 3)
-        >>> obs = env.reset()
+        Box(0, 255, (4, 96, 96, 3), uint8)
+        >>> obs, _ = env.reset()
         >>> obs.shape
         (4, 96, 96, 3)
     """

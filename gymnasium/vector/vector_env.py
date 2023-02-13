@@ -2,22 +2,48 @@
 from typing import Any, List, Optional, Tuple, Union
 
 import numpy as np
+from numpy.typing import NDArray
 
 import gymnasium as gym
 from gymnasium.vector.utils.spaces import batch_space
+
 
 __all__ = ["VectorEnv"]
 
 
 class VectorEnv(gym.Env):
-    """Base class for vectorized environments. Runs multiple independent copies of the same environment in parallel.
+    """Base class for vectorized environments to run multiple independent copies of the same environment in parallel.
 
-    This is not the same as 1 environment that has multiple subcomponents, but it is many copies of the same base env.
+    Vector environments can provide a linear speed-up in the steps taken per second through sampling multiple
+    sub-environments at the same time. To prevent terminated environments waiting until all sub-environments have
+    terminated or truncated, the vector environments autoreset sub-environments after they terminate or truncated.
+    As a result, the final step's observation and info are overwritten by the reset's observation and info.
+    Therefore, the observation and info for the final step of a sub-environment is stored in the info parameter,
+    using `"final_observation"` and `"final_info"` respectively. See :meth:`step` for more information.
 
-    Each observation returned from vectorized environment is a batch of observations for each parallel environment.
-    And :meth:`step` is also expected to receive a batch of actions for each parallel environment.
+    The vector environments batch `observations`, `rewards`, `terminations`, `truncations` and `info` for each
+    parallel environment. In addition, :meth:`step` expects to receive a batch of actions for each parallel environment.
 
-    Notes:
+    Gymnasium contains two types of Vector environments: :class:`AsyncVectorEnv` and :class:`SyncVectorEnv`.
+
+    The Vector Environments have the additional attributes for users to understand the implementation
+
+    - :attr:`num_envs` - The number of sub-environment in the vector environment
+    - :attr:`observation_space` - The batched observation space of the vector environment
+    - :attr:`single_observation_space` - The observation space of a single sub-environment
+    - :attr:`action_space` - The batched action space of the vector environment
+    - :attr:`single_action_space` - The action space of a single sub-environment
+
+    Note:
+        The info parameter of :meth:`reset` and :meth:`step` was originally implemented before OpenAI Gym v25 was a list
+        of dictionary for each sub-environment. However, this was modified in OpenAI Gym v25+ and in Gymnasium to a
+        dictionary with a NumPy array for each key. To use the old info style using the :class:`VectorListInfo`.
+
+    Note:
+        To render the sub-environments, use :meth:`call` with "render" arguments. Remember to set the `render_modes`
+        for all the sub-environments during initialization.
+
+    Note:
         All parallel environments should share the identical observation and action spaces.
         In other words, a vector of multiple different environments is not supported.
     """
@@ -91,14 +117,23 @@ class VectorEnv(gym.Env):
         seed: Optional[Union[int, List[int]]] = None,
         options: Optional[dict] = None,
     ):
-        """Reset all parallel environments and return a batch of initial observations.
+        """Reset all parallel environments and return a batch of initial observations and info.
 
         Args:
             seed: The environment reset seeds
             options: If to return the options
 
         Returns:
-            A batch of observations from the vectorized environment.
+            A batch of observations and info from the vectorized environment.
+
+        Example:
+            >>> import gymnasium as gym
+            >>> envs = gym.vector.make("CartPole-v1", num_envs=3)
+            >>> envs.reset(seed=42)
+            (array([[ 0.0273956 , -0.00611216,  0.03585979,  0.0197368 ],
+                   [ 0.01522993, -0.04562247, -0.04799704,  0.03392126],
+                   [-0.03774345, -0.02418869, -0.00942293,  0.0469184 ]],
+                  dtype=float32), {})
         """
         self.reset_async(seed=seed, options=options)
         return self.reset_wait(seed=seed, options=options)
@@ -112,7 +147,9 @@ class VectorEnv(gym.Env):
             actions: The actions to take asynchronously
         """
 
-    def step_wait(self, **kwargs):
+    def step_wait(
+        self, **kwargs
+    ) -> Tuple[Any, NDArray[Any], NDArray[Any], NDArray[Any], dict]:
         """Retrieves the results of a :meth:`step_async` call.
 
         A call to this method must always be preceded by a call to :meth:`step_async`.
@@ -123,15 +160,44 @@ class VectorEnv(gym.Env):
         Returns:
             The results from the :meth:`step_async` call
         """
+        raise NotImplementedError()
 
-    def step(self, actions):
+    def step(
+        self, actions
+    ) -> Tuple[Any, NDArray[Any], NDArray[Any], NDArray[Any], dict]:
         """Take an action for each parallel environment.
 
         Args:
             actions: element of :attr:`action_space` Batch of actions.
 
         Returns:
-            Batch of (observations, rewards, terminated, truncated, infos) or (observations, rewards, dones, infos)
+            Batch of (observations, rewards, terminations, truncations, infos)
+
+        Note:
+            As the vector environments autoreset for a terminating and truncating sub-environments,
+            the returned observation and info is not the final step's observation or info which is instead stored in
+            info as `"final_observation"` and `"final_info"`.
+
+        Example:
+            >>> import gymnasium as gym
+            >>> import numpy as np
+            >>> envs = gym.vector.make("CartPole-v1", num_envs=3)
+            >>> _ = envs.reset(seed=42)
+            >>> actions = np.array([1, 0, 1])
+            >>> observations, rewards, termination, truncation, infos = envs.step(actions)
+            >>> observations
+            array([[ 0.02727336,  0.18847767,  0.03625453, -0.26141977],
+                   [ 0.01431748, -0.24002443, -0.04731862,  0.3110827 ],
+                   [-0.03822722,  0.1710671 , -0.00848456, -0.2487226 ]],
+                  dtype=float32)
+            >>> rewards
+            array([1., 1., 1.])
+            >>> termination
+            array([False, False, False])
+            >>> termination
+            array([False, False, False])
+            >>> infos
+            {}
         """
         self.step_async(actions)
         return self.step_wait()
@@ -192,7 +258,7 @@ class VectorEnv(gym.Env):
             in :meth:`close_extras`. This is generic for both synchronous and asynchronous
             vectorized environments.
 
-        Notes:
+        Note:
             This will be automatically called when garbage collected or program exited.
 
         Args:
@@ -281,7 +347,7 @@ class VectorEnvWrapper(VectorEnv):
     could override some methods to change the behavior of the original vectorized environment
     without touching the original code.
 
-    Notes:
+    Note:
         Don't forget to call ``super().__init__(env)`` if the subclass overrides :meth:`__init__`.
     """
 

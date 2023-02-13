@@ -7,6 +7,8 @@ are vectors in the two-dimensional unit cube, the environment code may contain t
 
     self.action_space = spaces.Discrete(3)
     self.observation_space = spaces.Box(0, 1, shape=(2,))
+
+All spaces inherit from the :class:`Space` superclass.
 """
 from gymnasium.spaces.box import Box
 from gymnasium.spaces.dict import Dict
@@ -20,18 +22,23 @@ from gymnasium.spaces.text import Text
 from gymnasium.spaces.tuple import Tuple
 from gymnasium.spaces.utils import flatdim, flatten, flatten_space, unflatten
 
+
 __all__ = [
+    # base space
     "Space",
+    # fundamental spaces
     "Box",
     "Discrete",
     "Text",
-    "Graph",
-    "GraphInstance",
     "MultiDiscrete",
     "MultiBinary",
+    # composite spaces
+    "Graph",
+    "GraphInstance",
     "Tuple",
     "Sequence",
     "Dict",
+    # util functions (there are more utility functions in vector/utils/spaces.py)
     "flatdim",
     "flatten_space",
     "flatten",

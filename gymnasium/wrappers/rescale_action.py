@@ -4,7 +4,7 @@ from typing import Union
 import numpy as np
 
 import gymnasium as gym
-from gymnasium import spaces
+from gymnasium.spaces import Box
 
 
 class RescaleAction(gym.ActionWrapper):
@@ -15,15 +15,17 @@ class RescaleAction(gym.ActionWrapper):
 
     Example:
         >>> import gymnasium as gym
-        >>> env = gym.make('BipedalWalker-v3')
-        >>> env.action_space
-        Box(-1.0, 1.0, (4,), float32)
+        >>> from gymnasium.wrappers import RescaleAction
+        >>> import numpy as np
+        >>> env = gym.make("Hopper-v4")
+        >>> _ = env.reset(seed=42)
+        >>> obs, _, _, _, _ = env.step(np.array([1,1,1]))
+        >>> _ = env.reset(seed=42)
         >>> min_action = -0.5
-        >>> max_action = np.array([0.0, 0.5, 1.0, 0.75])
-        >>> env = RescaleAction(env, min_action=min_action, max_action=max_action)
-        >>> env.action_space
-        Box(-0.5, [0.   0.5  1.   0.75], (4,), float32)
-        >>> RescaleAction(env, min_action, max_action).action_space == gym.spaces.Box(min_action, max_action)
+        >>> max_action = np.array([0.0, 0.5, 0.75])
+        >>> wrapped_env = RescaleAction(env, min_action=min_action, max_action=max_action)
+        >>> wrapped_env_obs, _, _, _, _ = wrapped_env.step(max_action)
+        >>> np.alltrue(obs == wrapped_env_obs)
         True
     """
 
@@ -41,7 +43,7 @@ class RescaleAction(gym.ActionWrapper):
             max_action (float, int or np.ndarray): The max values for each action. This may be a numpy array or a scalar.
         """
         assert isinstance(
-            env.action_space, spaces.Box
+            env.action_space, Box
         ), f"expected Box action space, got {type(env.action_space)}"
         assert np.less_equal(min_action, max_action).all(), (min_action, max_action)
 
@@ -51,12 +53,6 @@ class RescaleAction(gym.ActionWrapper):
         )
         self.max_action = (
             np.zeros(env.action_space.shape, dtype=env.action_space.dtype) + max_action
-        )
-        self.action_space = spaces.Box(
-            low=min_action,
-            high=max_action,
-            shape=env.action_space.shape,
-            dtype=env.action_space.dtype,
         )
 
     def action(self, action):

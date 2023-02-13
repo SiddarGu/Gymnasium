@@ -4,6 +4,7 @@ from gymnasium import utils
 from gymnasium.envs.mujoco import MujocoEnv
 from gymnasium.spaces import Box
 
+
 DEFAULT_CAMERA_CONFIG = {
     "trackbodyid": 2,
     "distance": 4.0,
@@ -14,7 +15,7 @@ DEFAULT_CAMERA_CONFIG = {
 
 class Walker2dEnv(MujocoEnv, utils.EzPickle):
     """
-    ### Description
+    ## Description
 
     This environment builds on the hopper environment based on the work done by Erez, Tassa, and Todorov
     in ["Infinite Horizon Model Predictive Control for Nonlinear Periodic Tasks"](http://www.roboticsproceedings.org/rss07/p10.pdf)
@@ -27,7 +28,7 @@ class Walker2dEnv(MujocoEnv, utils.EzPickle):
     The goal is to make coordinate both sets of feet, legs, and thighs to move in the forward (right)
     direction by applying torques on the six hinges connecting the six body parts.
 
-    ### Action Space
+    ## Action Space
     The action space is a `Box(-1, 1, (6,), float32)`. An action represents the torques applied at the hinge joints.
 
     | Num | Action                                 | Control Min | Control Max | Name (in corresponding XML file) | Joint | Unit         |
@@ -39,7 +40,7 @@ class Walker2dEnv(MujocoEnv, utils.EzPickle):
     | 4   | Torque applied on the left leg rotor   | -1          | 1           | leg_left_joint                   | hinge | torque (N m) |
     | 5   | Torque applied on the left foot rotor  | -1          | 1           | foot_left_joint                  | hinge | torque (N m) |
 
-    ### Observation Space
+    ## Observation Space
 
     Observations consist of positional values of different body parts of the walker,
     followed by the velocities of those individual parts (their derivatives) with all the positions ordered before all the velocities.
@@ -72,7 +73,7 @@ class Walker2dEnv(MujocoEnv, utils.EzPickle):
     | 14  | angular velocity of the thigh hinge              | -Inf | Inf | thigh_left_joint                 | hinge | angular velocity (rad/s) |
     | 15  | angular velocity of the leg hinge                | -Inf | Inf | leg_left_joint                   | hinge | angular velocity (rad/s) |
     | 16  | angular velocity of the foot hinge               | -Inf | Inf | foot_left_joint                  | hinge | angular velocity (rad/s) |
-    ### Rewards
+    ## Rewards
     The reward consists of three parts:
     - *healthy_reward*: Every timestep that the walker is alive, it receives a fixed reward of value `healthy_reward`,
     - *forward_reward*: A reward of walking forward which is measured as
@@ -87,12 +88,12 @@ class Walker2dEnv(MujocoEnv, utils.EzPickle):
 
     The total reward returned is ***reward*** *=* *healthy_reward bonus + forward_reward - ctrl_cost* and `info` will also contain the individual reward terms
 
-    ### Starting State
+    ## Starting State
     All observations start in state
     (0.0, 1.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
     with a uniform noise in the range of [-`reset_noise_scale`, `reset_noise_scale`] added to the values for stochasticity.
 
-    ### Episode End
+    ## Episode End
     The walker is said to be unhealthy if any of the following happens:
 
     1. Any of the state space values is no longer finite
@@ -107,7 +108,7 @@ class Walker2dEnv(MujocoEnv, utils.EzPickle):
 
     If `terminate_when_unhealthy=False` is passed, the episode is ended only when 1000 timesteps are exceeded.
 
-    ### Arguments
+    ## Arguments
 
     No additional arguments are currently supported in v2 and lower.
 
@@ -136,11 +137,11 @@ class Walker2dEnv(MujocoEnv, utils.EzPickle):
     | `exclude_current_positions_from_observation` | **bool**  | `True`           | Whether or not to omit the x-coordinate from observations. Excluding the position can serve as an inductive bias to induce position-agnostic behavior in policies |
 
 
-    ### Version History
+    ## Version History
 
-    * v4: all mujoco environments now use the mujoco bindings in mujoco>=2.1.3
-    * v3: support for `gymnasium.make` kwargs such as `xml_file`, `ctrl_cost_weight`, `reset_noise_scale`, etc. rgb rendering comes from tracking camera (so agent does not run away from screen)
-    * v2: All continuous control environments now use mujoco_py >= 1.50
+    * v4: All MuJoCo environments now use the MuJoCo bindings in mujoco >= 2.1.3
+    * v3: Support for `gymnasium.make` kwargs such as `xml_file`, `ctrl_cost_weight`, `reset_noise_scale`, etc. rgb rendering comes from tracking camera (so agent does not run away from screen)
+    * v2: All continuous control environments now use mujoco-py >= 1.50
     * v1: max_time_steps raised to 1000 for robot based tasks. Added reward_threshold to environments.
     * v0: Initial versions release (1.0.0)
     """
@@ -204,7 +205,12 @@ class Walker2dEnv(MujocoEnv, utils.EzPickle):
             )
 
         MujocoEnv.__init__(
-            self, "walker2d.xml", 4, observation_space=observation_space, **kwargs
+            self,
+            "walker2d.xml",
+            4,
+            observation_space=observation_space,
+            default_camera_config=DEFAULT_CAMERA_CONFIG,
+            **kwargs
         )
 
     @property
@@ -288,11 +294,3 @@ class Walker2dEnv(MujocoEnv, utils.EzPickle):
 
         observation = self._get_obs()
         return observation
-
-    def viewer_setup(self):
-        assert self.viewer is not None
-        for key, value in DEFAULT_CAMERA_CONFIG.items():
-            if isinstance(value, np.ndarray):
-                getattr(self.viewer.cam, key)[:] = value
-            else:
-                setattr(self.viewer.cam, key, value)

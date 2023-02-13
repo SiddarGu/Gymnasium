@@ -4,13 +4,14 @@ import sys
 import time
 from copy import deepcopy
 from enum import Enum
-from typing import List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
+from numpy.typing import NDArray
 
 import gymnasium as gym
 from gymnasium import logger
-from gymnasium.core import ObsType
+from gymnasium.core import Env, ObsType
 from gymnasium.error import (
     AlreadyPendingCallError,
     ClosedEnvironmentError,
@@ -29,6 +30,7 @@ from gymnasium.vector.utils import (
 )
 from gymnasium.vector.vector_env import VectorEnv
 
+
 __all__ = ["AsyncVectorEnv"]
 
 
@@ -44,28 +46,27 @@ class AsyncVectorEnv(VectorEnv):
 
     It uses ``multiprocessing`` processes, and pipes for communication.
 
-    Example::
-
+    Example:
         >>> import gymnasium as gym
         >>> env = gym.vector.AsyncVectorEnv([
-        ...     lambda: gym.make("Pendulum-v0", g=9.81),
-        ...     lambda: gym.make("Pendulum-v0", g=1.62)
+        ...     lambda: gym.make("Pendulum-v1", g=9.81),
+        ...     lambda: gym.make("Pendulum-v1", g=1.62)
         ... ])
-        >>> env.reset()
-        array([[-0.8286432 ,  0.5597771 ,  0.90249056],
-               [-0.85009176,  0.5266346 ,  0.60007906]], dtype=float32)
+        >>> env.reset(seed=42)
+        (array([[-0.14995256,  0.9886932 , -0.12224312],
+               [ 0.5760367 ,  0.8174238 , -0.91244936]], dtype=float32), {})
     """
 
     def __init__(
         self,
-        env_fns: Sequence[callable],
+        env_fns: Sequence[Callable[[], Env]],
         observation_space: Optional[gym.Space] = None,
         action_space: Optional[gym.Space] = None,
         shared_memory: bool = True,
         copy: bool = True,
         context: Optional[str] = None,
         daemon: bool = True,
-        worker: Optional[callable] = None,
+        worker: Optional[Callable] = None,
     ):
         """Vectorized environment that runs multiple environments in parallel.
 
@@ -122,7 +123,7 @@ class AsyncVectorEnv(VectorEnv):
                 self.observations = read_from_shared_memory(
                     self.single_observation_space, _obs_buffer, n=self.num_envs
                 )
-            except CustomSpaceError:
+            except CustomSpaceError as e:
                 raise ValueError(
                     "Using `shared_memory=True` in `AsyncVectorEnv` "
                     "is incompatible with non-standard Gymnasium observation spaces "
@@ -130,7 +131,7 @@ class AsyncVectorEnv(VectorEnv):
                     "only compatible with default Gymnasium spaces (e.g. `Box`, "
                     "`Tuple`, `Dict`) for batching. Set `shared_memory=False` "
                     "if you use custom observation spaces."
-                )
+                ) from e
         else:
             _obs_buffer = None
             self.observations = create_empty_array(
@@ -215,7 +216,7 @@ class AsyncVectorEnv(VectorEnv):
         timeout: Optional[Union[int, float]] = None,
         seed: Optional[int] = None,
         options: Optional[dict] = None,
-    ) -> Union[ObsType, Tuple[ObsType, List[dict]]]:
+    ) -> Union[ObsType, Tuple[ObsType, dict]]:
         """Waits for the calls triggered by :meth:`reset_async` to finish and returns the results.
 
         Args:
@@ -287,7 +288,7 @@ class AsyncVectorEnv(VectorEnv):
 
     def step_wait(
         self, timeout: Optional[Union[int, float]] = None
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, List[dict]]:
+    ) -> Tuple[Any, NDArray[Any], NDArray[Any], NDArray[Any], dict]:
         """Wait for the calls to :obj:`step` in each sub-environment to finish.
 
         Args:
@@ -318,14 +319,15 @@ class AsyncVectorEnv(VectorEnv):
         successes = []
         for i, pipe in enumerate(self.parent_pipes):
             result, success = pipe.recv()
-            obs, rew, terminated, truncated, info = result
-
             successes.append(success)
-            observations_list.append(obs)
-            rewards.append(rew)
-            terminateds.append(terminated)
-            truncateds.append(truncated)
-            infos = self._add_info(infos, info, i)
+            if success:
+                obs, rew, terminated, truncated, info = result
+
+                observations_list.append(obs)
+                rewards.append(rew)
+                terminateds.append(terminated)
+                truncateds.append(truncated)
+                infos = self._add_info(infos, info, i)
 
         self._raise_if_errors(successes)
         self._state = AsyncState.DEFAULT
@@ -566,9 +568,10 @@ def _worker(index, env_fn, pipe, parent_pipe, shared_memory, error_queue):
                     info,
                 ) = env.step(data)
                 if terminated or truncated:
-                    old_observation = observation
+                    old_observation, old_info = observation, info
                     observation, info = env.reset()
                     info["final_observation"] = old_observation
+                    info["final_info"] = old_info
                 pipe.send(((observation, reward, terminated, truncated, info), True))
             elif command == "seed":
                 env.seed(data)
@@ -636,10 +639,10 @@ def _worker_shared_memory(index, env_fn, pipe, parent_pipe, shared_memory, error
                     info,
                 ) = env.step(data)
                 if terminated or truncated:
-                    old_observation = observation
+                    old_observation, old_info = observation, info
                     observation, info = env.reset()
                     info["final_observation"] = old_observation
-
+                    info["final_info"] = old_info
                 write_to_shared_memory(
                     observation_space, index, observation, shared_memory
                 )

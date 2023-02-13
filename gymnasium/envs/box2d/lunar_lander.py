@@ -12,6 +12,7 @@ from gymnasium.error import DependencyNotInstalled
 from gymnasium.utils import EzPickle, colorize
 from gymnasium.utils.step_api_compatibility import step_api_compatibility
 
+
 try:
     import Box2D
     from Box2D.b2 import (
@@ -22,10 +23,10 @@ try:
         polygonShape,
         revoluteJointDef,
     )
-except ImportError:
+except ImportError as e:
     raise DependencyNotInstalled(
-        "box2d is not installed, run `pip install gymnasium[box2d]`"
-    )
+        "Box2D is not installed, run `pip install gymnasium[box2d]`"
+    ) from e
 
 
 if TYPE_CHECKING:
@@ -76,7 +77,7 @@ class ContactDetector(contactListener):
 
 class LunarLander(gym.Env, EzPickle):
     """
-    ### Description
+    ## Description
     This environment is a classic rocket trajectory optimization problem.
     According to Pontryagin's maximum principle, it is optimal to fire the
     engine at full throttle or turn it off. This is the reason why this
@@ -95,16 +96,19 @@ class LunarLander(gym.Env, EzPickle):
     <!-- To play yourself, run: -->
     <!-- python examples/agents/keyboard_agent.py LunarLander-v2 -->
 
-    ### Action Space
-    There are four discrete actions available: do nothing, fire left
-    orientation engine, fire main engine, fire right orientation engine.
+    ## Action Space
+    There are four discrete actions available:
+    - 0: do nothing
+    - 1: fire left orientation engine
+    - 2: fire main engine
+    - 3: fire right orientation engine
 
-    ### Observation Space
+    ## Observation Space
     The state is an 8-dimensional vector: the coordinates of the lander in `x` & `y`, its linear
     velocities in `x` & `y`, its angle, its angular velocity, and two booleans
     that represent whether each leg is in contact with the ground or not.
 
-    ### Rewards
+    ## Rewards
     After every step a reward is granted. The total reward of an episode is the
     sum of the rewards for all the steps within that episode.
 
@@ -120,11 +124,11 @@ class LunarLander(gym.Env, EzPickle):
 
     An episode is considered a solution if it scores at least 200 points.
 
-    ### Starting State
+    ## Starting State
     The lander starts at the top center of the viewport with a random initial
     force applied to its center of mass.
 
-    ### Episode Termination
+    ## Episode Termination
     The episode finishes if:
     1) the lander crashes (the lander body gets in contact with the moon);
     2) the lander gets outside of the viewport (`x` coordinate is greater than 1);
@@ -137,7 +141,7 @@ class LunarLander(gym.Env, EzPickle):
     > wakes up. Bodies will also wake up if a joint or contact attached to
     > them is destroyed.
 
-    ### Arguments
+    ## Arguments
     To use to the _continuous_ environment, you need to specify the
     `continuous=True` argument like below:
     ```python
@@ -172,16 +176,16 @@ class LunarLander(gym.Env, EzPickle):
     `wind_power` dictates the maximum magnitude of linear wind applied to the craft. The recommended value for `wind_power` is between 0.0 and 20.0.
     `turbulence_power` dictates the maximum magnitude of rotational wind applied to the craft. The recommended value for `turbulence_power` is between 0.0 and 2.0.
 
-    ### Version History
+    ## Version History
     - v2: Count energy spent and in v0.24, added turbulence with wind power and turbulence_power parameters
     - v1: Legs contact with ground added in state vector; contact with ground
         give +10 reward points, and -10 if then lose contact; reward
         renormalized to 200; harder initial random push.
     - v0: Initial version
 
-    <!-- ### References -->
+    <!-- ## References -->
 
-    ### Credits
+    ## Credits
     Created by Oleg Klimov
     """
 
@@ -504,17 +508,22 @@ class LunarLander(gym.Env, EzPickle):
             ox = tip[0] * (4 / SCALE + 2 * dispersion[0]) + side[0] * dispersion[1]
             oy = -tip[1] * (4 / SCALE + 2 * dispersion[0]) - side[1] * dispersion[1]
             impulse_pos = (self.lander.position[0] + ox, self.lander.position[1] + oy)
-            p = self._create_particle(
-                3.5,  # 3.5 is here to make particle speed adequate
-                impulse_pos[0],
-                impulse_pos[1],
-                m_power,
-            )  # particles are just a decoration
-            p.ApplyLinearImpulse(
-                (ox * MAIN_ENGINE_POWER * m_power, oy * MAIN_ENGINE_POWER * m_power),
-                impulse_pos,
-                True,
-            )
+            if self.render_mode is not None:
+                # particles are just a decoration, so don't add them when not rendering
+                p = self._create_particle(
+                    3.5,  # 3.5 is here to make particle speed adequate
+                    impulse_pos[0],
+                    impulse_pos[1],
+                    m_power,
+                )
+                p.ApplyLinearImpulse(
+                    (
+                        ox * MAIN_ENGINE_POWER * m_power,
+                        oy * MAIN_ENGINE_POWER * m_power,
+                    ),
+                    impulse_pos,
+                    True,
+                )
             self.lander.ApplyLinearImpulse(
                 (-ox * MAIN_ENGINE_POWER * m_power, -oy * MAIN_ENGINE_POWER * m_power),
                 impulse_pos,
@@ -602,13 +611,22 @@ class LunarLander(gym.Env, EzPickle):
         return np.array(state, dtype=np.float32), reward, terminated, False, {}
 
     def render(self):
+        if self.render_mode is None:
+            assert self.spec is not None
+            gym.logger.warn(
+                "You are calling render method without specifying any render mode. "
+                "You can specify the render_mode at initialization, "
+                f'e.g. gym.make("{self.spec.id}", render_mode="rgb_array")'
+            )
+            return
+
         try:
             import pygame
             from pygame import gfxdraw
-        except ImportError:
+        except ImportError as e:
             raise DependencyNotInstalled(
                 "pygame is not installed, run `pip install gymnasium[box2d]`"
-            )
+            ) from e
 
         if self.screen is None and self.render_mode == "human":
             pygame.init()
@@ -808,4 +826,5 @@ class LunarLanderContinuous:
 
 
 if __name__ == "__main__":
-    demo_heuristic_lander(LunarLander(), render=True)
+    env = gym.make("LunarLander-v2", render_mode="rgb_array")
+    demo_heuristic_lander(env, render=True)

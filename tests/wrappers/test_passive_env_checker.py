@@ -14,7 +14,7 @@ from tests.testing_env import GenericTestEnv
 @pytest.mark.parametrize(
     "env",
     all_testing_initialised_envs,
-    ids=[env.spec.id for env in all_testing_initialised_envs],
+    ids=[env.spec.id for env in all_testing_initialised_envs if env.spec is not None],
 )
 def test_passive_checker_wrapper_warnings(env):
     with warnings.catch_warnings(record=True) as caught_warnings:
@@ -68,8 +68,8 @@ def _step_failure(self, action):
 
 def test_api_failures():
     env = GenericTestEnv(
-        reset_fn=_reset_failure,
-        step_fn=_step_failure,
+        reset_func=_reset_failure,
+        step_func=_step_failure,
         metadata={"render_modes": "error"},
     )
     env = PassiveEnvChecker(env)

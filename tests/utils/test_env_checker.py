@@ -1,7 +1,7 @@
 """Tests that the `env_checker` runs as expects and all errors are possible."""
 import re
 import warnings
-from typing import Tuple, Union
+from typing import Callable, Tuple, Union
 
 import numpy as np
 import pytest
@@ -106,16 +106,16 @@ def _reset_default_seed(self: GenericTestEnv, seed="Error", options=None):
         ],
     ],
 )
-def test_check_reset_seed(test, func: callable, message: str):
+def test_check_reset_seed(test, func: Callable, message: str):
     """Tests the check reset seed function works as expected."""
     if test is UserWarning:
         with pytest.warns(
             UserWarning, match=f"^\\x1b\\[33mWARN: {re.escape(message)}\\x1b\\[0m$"
         ):
-            check_reset_seed(GenericTestEnv(reset_fn=func))
+            check_reset_seed(GenericTestEnv(reset_func=func))
     else:
         with pytest.raises(test, match=f"^{re.escape(message)}$"):
-            check_reset_seed(GenericTestEnv(reset_fn=func))
+            check_reset_seed(GenericTestEnv(reset_func=func))
 
 
 def _deprecated_return_info(
@@ -175,11 +175,11 @@ def _return_info_not_dict(self, seed=None, options=None):
         ],
     ],
 )
-def test_check_reset_return_type(test, func: callable, message: str):
+def test_check_reset_return_type(test, func: Callable, message: str):
     """Tests the check `env.reset()` function has a correct return type."""
 
     with pytest.raises(test, match=f"^{re.escape(message)}$"):
-        check_reset_return_type(GenericTestEnv(reset_fn=func))
+        check_reset_return_type(GenericTestEnv(reset_func=func))
 
 
 @pytest.mark.parametrize(
@@ -194,11 +194,11 @@ def test_check_reset_return_type(test, func: callable, message: str):
         ],
     ],
 )
-def test_check_reset_return_info_deprecation(test, func: callable, message: str):
+def test_check_reset_return_info_deprecation(test, func: Callable, message: str):
     """Tests that return_info has been correct deprecated as an argument to `env.reset()`."""
 
     with pytest.warns(test, match=f"^\\x1b\\[33mWARN: {re.escape(message)}\\x1b\\[0m$"):
-        check_reset_return_info_deprecation(GenericTestEnv(reset_fn=func))
+        check_reset_return_info_deprecation(GenericTestEnv(reset_func=func))
 
 
 def test_check_seed_deprecation():
@@ -236,7 +236,7 @@ def test_check_reset_options():
             "The `reset` method does not provide an `options` or `**kwargs` keyword argument"
         ),
     ):
-        check_reset_options(GenericTestEnv(reset_fn=lambda self: (0, {})))
+        check_reset_options(GenericTestEnv(reset_func=lambda self: (0, {})))
 
 
 @pytest.mark.parametrize(

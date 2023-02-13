@@ -1,11 +1,15 @@
 """Implementation of a space that represents textual strings."""
-from typing import Any, Dict, FrozenSet, Optional, Set, Tuple, Union
+from __future__ import annotations
+
+from typing import Any
 
 import numpy as np
+from numpy.typing import NDArray
 
 from gymnasium.spaces.space import Space
 
-alphanumeric: FrozenSet[str] = frozenset(
+
+alphanumeric: frozenset[str] = frozenset(
     "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 )
 
@@ -13,15 +17,17 @@ alphanumeric: FrozenSet[str] = frozenset(
 class Text(Space[str]):
     r"""A space representing a string comprised of characters from a given charset.
 
-    Example::
-
+    Example:
+        >>> from gymnasium.spaces import Text
         >>> # {"", "B5", "hello", ...}
         >>> Text(5)
+        Text(1, 5, characters=0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz)
         >>> # {"0", "42", "0123456789", ...}
         >>> import string
         >>> Text(min_length = 1,
         ...      max_length = 10,
         ...      charset = string.digits)
+        Text(1, 10, characters=0123456789)
     """
 
     def __init__(
@@ -29,8 +35,8 @@ class Text(Space[str]):
         max_length: int,
         *,
         min_length: int = 1,
-        charset: Union[Set[str], str] = alphanumeric,
-        seed: Optional[Union[int, np.random.Generator]] = None,
+        charset: frozenset[str] | str = alphanumeric,
+        seed: int | np.random.Generator | None = None,
     ):
         r"""Constructor of :class:`Text` space.
 
@@ -58,9 +64,9 @@ class Text(Space[str]):
         self.min_length: int = int(min_length)
         self.max_length: int = int(max_length)
 
-        self._char_set: FrozenSet[str] = frozenset(charset)
-        self._char_list: Tuple[str, ...] = tuple(charset)
-        self._char_index: Dict[str, np.int32] = {
+        self._char_set: frozenset[str] = frozenset(charset)
+        self._char_list: tuple[str, ...] = tuple(charset)
+        self._char_index: dict[str, np.int32] = {
             val: np.int32(i) for i, val in enumerate(tuple(charset))
         }
         self._char_str: str = "".join(sorted(tuple(charset)))
@@ -69,7 +75,8 @@ class Text(Space[str]):
         super().__init__(dtype=str, seed=seed)
 
     def sample(
-        self, mask: Optional[Tuple[Optional[int], Optional[np.ndarray]]] = None
+        self,
+        mask: None | (tuple[int | None, NDArray[np.int8] | None]) = None,
     ) -> str:
         """Generates a single random sample from this space with by default a random length between `min_length` and `max_length` and sampled from the `charset`.
 
@@ -152,7 +159,7 @@ class Text(Space[str]):
             f"Text({self.min_length}, {self.max_length}, characters={self.characters})"
         )
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: Any) -> bool:
         """Check whether ``other`` is equivalent to this instance."""
         return (
             isinstance(other, Text)
@@ -162,12 +169,12 @@ class Text(Space[str]):
         )
 
     @property
-    def character_set(self) -> FrozenSet[str]:
+    def character_set(self) -> frozenset[str]:
         """Returns the character set for the space."""
         return self._char_set
 
     @property
-    def character_list(self) -> Tuple[str, ...]:
+    def character_list(self) -> tuple[str, ...]:
         """Returns a tuple of characters in the space."""
         return self._char_list
 

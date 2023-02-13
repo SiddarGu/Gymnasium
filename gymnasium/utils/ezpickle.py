@@ -4,12 +4,11 @@
 class EzPickle:
     """Objects that are pickled and unpickled via their constructor arguments.
 
-    Example::
-
-        >>> class Dog(Animal, EzPickle):
+    Example:
+        >>> class Dog(Animal, EzPickle): # doctest: +SKIP
         ...    def __init__(self, furcolor, tailkind="bushy"):
         ...        Animal.__init__()
-        ...        EzPickle.__init__(furcolor, tailkind)
+        ...        EzPickle.__init__(self, furcolor, tailkind)
 
     When this object is unpickled, a new ``Dog`` will be constructed by passing the provided furcolor and tailkind into the constructor.
     However, philosophers are still not sure whether it is still the same dog.

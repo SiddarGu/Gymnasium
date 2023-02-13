@@ -12,6 +12,7 @@ import gymnasium as gym
 from gymnasium.utils.play import MissingKeysToAction, PlayableGame, play
 from tests.testing_env import GenericTestEnv
 
+
 RELEVANT_KEY_1 = ord("a")  # 97
 RELEVANT_KEY_2 = ord("d")  # 100
 IRRELEVANT_KEY = 1
@@ -20,7 +21,7 @@ IRRELEVANT_KEY = 1
 PlayableEnv = partial(
     GenericTestEnv,
     metadata={"render_modes": ["rgb_array"]},
-    render_fn=lambda self: np.ones((10, 10, 3)),
+    render_func=lambda self: np.ones((10, 10, 3)),
 )
 
 
@@ -206,4 +207,12 @@ def test_play_loop_real_env():
 
 def test_play_no_keys():
     with pytest.raises(MissingKeysToAction):
-        play(gym.make("CartPole-v1"))
+        play(gym.make("CartPole-v1", render_mode="rgb_array"))
+
+
+def test_wrong_render_mode():
+    with pytest.raises(
+        ValueError,
+        match=r"PlayableGame wrapper works only with rgb_array and rgb_array_list render modes",
+    ):
+        play(gym.make("CartPole-v1"), keys_to_action={})
