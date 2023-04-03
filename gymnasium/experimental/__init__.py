@@ -12,12 +12,11 @@ __all__ = [
     # Functional
     "FuncEnv",
     "functional",
-    # Wrappers
-    "wrappers",
     # Vector
     "VectorEnv",
     "VectorWrapper",
     "SyncVectorEnv",
     "AsyncVectorEnv",
-    # "vector",
+    # wrappers
+    "wrappers",
 ]

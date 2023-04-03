@@ -182,7 +182,7 @@ class MuJocoPyEnv(BaseMujocoEnv):
                 "here: https://github.com/openai/mujoco-py.)"
             )
 
-        logger.warn(
+        logger.deprecation(
             "This version of the mujoco environments depends "
             "on the mujoco-py bindings, which are no longer maintained "
             "and may stop working. Please upgrade to the v4 versions of "
@@ -368,7 +368,7 @@ class MujocoEnv(BaseMujocoEnv):
     def _step_mujoco_simulation(self, ctrl, n_frames):
         self.data.ctrl[:] = ctrl
 
-        mujoco.mj_step(self.model, self.data, nstep=self.frame_skip)
+        mujoco.mj_step(self.model, self.data, nstep=n_frames)
 
         # As of MuJoCo 2.0, force-related quantities like cacc are not computed
         # unless there's a force sensor in the model.
