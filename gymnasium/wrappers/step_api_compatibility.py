@@ -4,16 +4,12 @@ from gymnasium.logger import deprecation
 from gymnasium.utils.step_api_compatibility import step_api_compatibility
 
 
-class StepAPICompatibility(gym.Wrapper):
+class StepAPICompatibility(gym.Wrapper, gym.utils.RecordConstructorArgs):
     r"""A wrapper which can transform an environment from new step API to old and vice-versa.
 
     Old step API refers to step() method returning (observation, reward, done, info)
     New step API refers to step() method returning (observation, reward, terminated, truncated, info)
     (Refer to docs for details on the API change)
-
-    Args:
-        env (gym.Env): the env to wrap. Can be in old or new API
-        output_truncation_bool (bool): Apply to convert environment to use new step API that returns two bool. (True by default)
 
     Example:
         >>> import gymnasium as gym
@@ -33,7 +29,11 @@ class StepAPICompatibility(gym.Wrapper):
             env (gym.Env): the env to wrap. Can be in old or new API
             output_truncation_bool (bool): Whether the wrapper's step method outputs two booleans (new API) or one boolean (old API)
         """
-        super().__init__(env)
+        gym.utils.RecordConstructorArgs.__init__(
+            self, output_truncation_bool=output_truncation_bool
+        )
+        gym.Wrapper.__init__(self, env)
+
         self.is_vector_env = isinstance(env.unwrapped, gym.vector.VectorEnv)
         self.output_truncation_bool = output_truncation_bool
         if not self.output_truncation_bool:
